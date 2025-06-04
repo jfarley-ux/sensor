@@ -1,2 +1,3 @@
 adafruit-circuitpython-scd4x
+adafruit-circuitpython-bme680
 adafruit-blinka
