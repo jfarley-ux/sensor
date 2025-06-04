@@ -3,6 +3,10 @@
 
 echo "Setting up Git repository for SCD40 sensor project..."
 
+# Configure git with your credentials
+git config --global user.name "jfarley-ux"
+git config --global user.email "jamie.farley@hotmail.co.uk"
+
 # Initialize git repository
 git init
 

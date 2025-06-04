@@ -5,7 +5,12 @@ Reads CO2, temperature, and humidity from SCD40 sensor (I2C)
 Reads temperature, humidity, pressure, and gas resistance from BME688 sensor (I2C)
 """
 
+import os
+# Force Blinka to use pigpio as its GPIO/I2C driver
+os.environ["BLINKA_FORCE_PIGPIO"] = "1"
+
 import time
+import pigpio
 import board
 import busio
 import digitalio
@@ -13,6 +18,12 @@ from adafruit_scd4x import SCD4X
 import adafruit_bme680
 
 def main():
+    # Initialize pigpio daemon interface (no further use but required)
+    pi = pigpio.pi()
+    if not pi.connected:
+        print("Failed to connect to pigpio daemon; ensure `sudo pigpiod` is running")
+        return
+
     try:
         # Initialize I2C bus for SCD40 on standard pins
         # SCD40 connections:
@@ -62,18 +73,32 @@ def main():
         finally:
             i2c_custom.unlock()
         
+        bme688 = None
         try:
-            bme688 = adafruit_bme680.Adafruit_BME680_I2C(i2c_custom)
-            print("BME688 initialized successfully")
+            # Try BME688 at different possible addresses
+            if 0x77 in devices_custom:
+                bme688 = adafruit_bme680.Adafruit_BME680_I2C(i2c_custom, address=0x77)
+                print("BME688 initialized successfully at address 0x77")
+            elif 0x76 in devices_custom:
+                bme688 = adafruit_bme680.Adafruit_BME680_I2C(i2c_custom, address=0x76)
+                print("BME688 initialized successfully at address 0x76")
+            else:
+                bme688 = adafruit_bme680.Adafruit_BME680_I2C(i2c_custom)
+                print("BME688 initialized successfully")
         except Exception as e:
             print(f"BME688 initialization failed: {e}")
-            print("Check BME688 wiring on GPIO 17 (SDA) and GPIO 27 (SCL)")
-            return
+            print("Continuing with SCD40 only...")
+            print("Check BME688 wiring:")
+            print("  VCC → Pin 2 (5V)")
+            print("  GND → Pin 9 (GND)")
+            print("  SDA → Pin 11 (GPIO 17)")
+            print("  SCL → Pin 13 (GPIO 27)")
         
-        print("SCD40 + BME688 Sensors Initializing...")
+        print("Sensor initialization complete...")
         
-        # Configure BME688
-        bme688.sea_level_pressure = 1013.25  # Sea level pressure in hPa
+        # Configure BME688 if available
+        if bme688:
+            bme688.sea_level_pressure = 1013.25  # Sea level pressure in hPa
         
         # Start periodic measurement for SCD40
         scd4x.start_periodic_measurement()
@@ -98,22 +123,25 @@ def main():
             else:
                 print("SCD40: Data not ready")
             
-            # Read BME688 data
-            try:
-                bme688_temp = bme688.temperature
-                bme688_humidity = bme688.relative_humidity
-                pressure = bme688.pressure
-                gas_resistance = bme688.gas
-                altitude = bme688.altitude
-                
-                print("BME688 Readings:")
-                print(f"  Temperature: {bme688_temp:.1f} °C")
-                print(f"  Humidity: {bme688_humidity:.1f} %")
-                print(f"  Pressure: {pressure:.2f} hPa")
-                print(f"  Gas Resistance: {gas_resistance:.0f} Ohms")
-                print(f"  Altitude: {altitude:.1f} m")
-            except Exception as e:
-                print(f"BME688 Error: {e}")
+            # Read BME688 data only if sensor is available
+            if bme688:
+                try:
+                    bme688_temp = bme688.temperature
+                    bme688_humidity = bme688.relative_humidity
+                    pressure = bme688.pressure
+                    gas_resistance = bme688.gas
+                    altitude = bme688.altitude
+                    
+                    print("BME688 Readings:")
+                    print(f"  Temperature: {bme688_temp:.1f} °C")
+                    print(f"  Humidity: {bme688_humidity:.1f} %")
+                    print(f"  Pressure: {pressure:.2f} hPa")
+                    print(f"  Gas Resistance: {gas_resistance:.0f} Ohms")
+                    print(f"  Altitude: {altitude:.1f} m")
+                except Exception as e:
+                    print(f"BME688 Error: {e}")
+            else:
+                print("BME688: Not available")
             
             print("-" * 50)
             
