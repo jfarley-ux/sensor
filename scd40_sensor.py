@@ -51,13 +51,14 @@ def main():
         finally:
             i2c.unlock()
         
-        # Try to initialize SCD40 with error handling
+        # Choose SCD40 address based on scan (0x44 if present, else default 0x62)
+        addr = 0x44 if 0x44 in devices else 0x62
         try:
-            scd4x = SCD4X(i2c)
-            print("SCD40 initialized successfully")
+            scd4x = SCD4X(i2c, address=addr)
+            print(f"SCD40 initialized at 0x{addr:02X}")
         except Exception as e:
-            print(f"SCD40 initialization failed: {e}")
-            print("Check wiring and ensure SCD40 is connected to GPIO 2 (SDA) and GPIO 3 (SCL)")
+            print(f"SCD40 initialization failed at 0x{addr:02X}: {e}")
+            print("Check wiring and ensure correct SDA/SCL pins")
             return
         
         # Custom I2C for BME688 on pins 11 and 13

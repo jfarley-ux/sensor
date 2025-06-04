@@ -17,6 +17,7 @@ This project reads environmental data from two sensors:
 - SCD40 GND → Pi GND (Pin 6)
 - SCD40 SDA → Pi GPIO 2 (Pin 3)
 - SCD40 SCL → Pi GPIO 3 (Pin 5)
+- SCD40 I2C address may be 0x44 or default 0x62 (scan with `i2cdetect`)
 
 ### BME688 (I2C - Custom Pins):
 - BME688 VCC → Pi 5V (Pin 2)
