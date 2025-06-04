@@ -29,11 +29,46 @@ def main():
         
         # Standard I2C for SCD40
         i2c = busio.I2C(board.SCL, board.SDA)  # GPIO 3 = SCL, GPIO 2 = SDA
-        scd4x = SCD4X(i2c)
+        
+        # Scan for I2C devices to debug
+        print("Scanning I2C bus for devices...")
+        while not i2c.try_lock():
+            pass
+        try:
+            devices = i2c.scan()
+            print(f"I2C devices found: {[hex(device) for device in devices]}")
+        finally:
+            i2c.unlock()
+        
+        # Try to initialize SCD40 with error handling
+        try:
+            scd4x = SCD4X(i2c)
+            print("SCD40 initialized successfully")
+        except Exception as e:
+            print(f"SCD40 initialization failed: {e}")
+            print("Check wiring and ensure SCD40 is connected to GPIO 2 (SDA) and GPIO 3 (SCL)")
+            return
         
         # Custom I2C for BME688 on pins 11 and 13
         i2c_custom = busio.I2C(board.D27, board.D17)  # SCL=GPIO27 (Pin 13), SDA=GPIO17 (Pin 11)
-        bme688 = adafruit_bme680.Adafruit_BME680_I2C(i2c_custom)
+        
+        # Scan custom I2C bus
+        print("Scanning custom I2C bus for BME688...")
+        while not i2c_custom.try_lock():
+            pass
+        try:
+            devices_custom = i2c_custom.scan()
+            print(f"Custom I2C devices found: {[hex(device) for device in devices_custom]}")
+        finally:
+            i2c_custom.unlock()
+        
+        try:
+            bme688 = adafruit_bme680.Adafruit_BME680_I2C(i2c_custom)
+            print("BME688 initialized successfully")
+        except Exception as e:
+            print(f"BME688 initialization failed: {e}")
+            print("Check BME688 wiring on GPIO 17 (SDA) and GPIO 27 (SCL)")
+            return
         
         print("SCD40 + BME688 Sensors Initializing...")
         
